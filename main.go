@@ -67,6 +67,10 @@ func main() {
 		panic(err)
 	}
 
+	if len(documents) == 0 {
+		return
+	}
+
 	err = saveOrders(os.Args[1], parseOrders(documents))
 
 	if err != nil {
