@@ -5,6 +5,8 @@ import (
 	"encoding/xml"
 	"fmt"
 	"os"
+	"path/filepath"
+	"strconv"
 	"time"
 
 	"context"
@@ -28,12 +30,30 @@ type order struct {
 	Products []product `xml:"products>product"`
 }
 
+var pIDFile string
+
+func init() {
+	pIDFile, _ = filepath.Abs(filepath.Dir(os.Args[0]))
+
+	pIDFile += "/.pid"
+}
+
 func main() {
 	if len(os.Args) != 3 {
 		fmt.Printf("Usage: %s path/to/orders.xml path/to/key.json\n(got %+v)\n", os.Args[0], os.Args[1:])
 
 		return
 	}
+
+	err := safetyCheck(os.Args[1])
+
+	if err != nil {
+		panic(err)
+	}
+
+	os.WriteFile(pIDFile, []byte(strconv.Itoa(os.Getpid())), 0644)
+
+	defer os.Remove(pIDFile)
 
 	client, err := setupFirestore(os.Args[2])
 
@@ -148,6 +168,24 @@ func saveOrders(filename string, orders []order) error {
 
 	if err != nil {
 		return fmt.Errorf("error writing file %s: %v", filename, err)
+	}
+
+	return nil
+}
+
+func safetyCheck(filename string) error {
+	tmpFilename := filename + ".tmp"
+
+	if _, err := os.Stat(tmpFilename); err == nil {
+		return fmt.Errorf("%s exists", tmpFilename)
+	}
+
+	if _, err := os.Stat(filename); err == nil {
+		return fmt.Errorf("%s exists", filename)
+	}
+
+	if _, err := os.Stat(pIDFile); err == nil {
+		return fmt.Errorf("another proccess is running, check %s", pIDFile)
 	}
 
 	return nil
