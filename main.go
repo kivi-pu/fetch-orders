@@ -51,7 +51,7 @@ func main() {
 		panic(err)
 	}
 
-	os.WriteFile(pIDFile, []byte(strconv.Itoa(os.Getpid())), 0644)
+	WriteFile(pIDFile, []byte(strconv.Itoa(os.Getpid())), 0644)
 
 	defer os.Remove(pIDFile)
 
@@ -162,7 +162,7 @@ func saveOrders(filename string, orders []order) error {
 
 	tmpFilename := filename + ".tmp"
 
-	err = os.WriteFile(tmpFilename, data, 0644)
+	err = WriteFile(tmpFilename, data, 0644)
 
 	if err != nil {
 		return fmt.Errorf("error writing file %s: %v", tmpFilename, err)
@@ -193,4 +193,17 @@ func safetyCheck(filename string) error {
 	}
 
 	return nil
+}
+
+func WriteFile(name string, data []byte, perm os.FileMode) error {
+	f, err := os.OpenFile(name, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, perm)
+	if err != nil {
+		return err
+	}
+	_, err = f.Write(data)
+	if err1 := f.Close(); err1 != nil && err == nil {
+		err = err1
+	}
+	return err
+
 }
